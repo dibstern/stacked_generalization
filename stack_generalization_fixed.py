@@ -1,5 +1,5 @@
 __author__ = 'Andreas Hsieh'
-#Fix errors when enumerate indices in KFold
+#Modifiy K-Fold when input is Pandas Dataframe
 
 import numpy as np
 from sklearn.cross_validation import KFold
