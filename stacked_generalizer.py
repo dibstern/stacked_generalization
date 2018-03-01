@@ -1,5 +1,5 @@
 import numpy as np
-from sklearn.cross_validation import KFold
+from sklearn.model_selection import KFold
 from sklearn.metrics import classification_report, accuracy_score, confusion_matrix
 from copy import copy
 
