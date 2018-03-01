@@ -1,11 +1,12 @@
 import numpy as np
 from sklearn.model_selection import KFold
-from sklearn.metrics import classification_report, accuracy_score, confusion_matrix
+from sklearn.metrics import (classification_report, accuracy_score, 
+						     confusion_matrix)
 from copy import copy
 
 def get_predictions(model, X):
     if hasattr(model, 'predict_proba'):
-        pred = model.predict_proba(X)    
+        pred = model.predict_proba(X)   
     else:
         pred = model.predict(X)
 
@@ -18,13 +19,14 @@ class StackedGeneralizer(object):
     """Base class for stacked generalization classifier models
     """
 
-    def __init__(self, base_models=None, blending_model=None, n_folds=5, verbose=True):
+    def __init__(self, base_models=None, blending_model=None, n_folds=5,
+    		     verbose=True):
         """
         Stacked Generalizer Classifier
 
-        Trains a series of base models using K-fold cross-validation, then combines
-        the predictions of each model into a set of features that are used to train
-        a high-level classifier model. 
+        Trains a series of base models using K-fold cross-validation, then 
+        combines the predictions of each model into a set of features that are
+        used to train a high-level classifier model. 
 
         Parameters
         -----------
@@ -32,8 +34,8 @@ class StackedGeneralizer(object):
             Each model must have a .fit and .predict_proba/.predict method a'la
             sklearn
         blending_model: object
-            A classifier model used to aggregate the outputs of the trained base
-            models. Must have a .fit and .predict_proba/.predict method
+            A classifier model used to aggregate the outputs of the trained
+            base models. Must have a .fit and .predict_proba/.predict method
         n_folds: int
             The number of K-folds to use in =cross-validated model training
         verbose: boolean
@@ -43,7 +45,8 @@ class StackedGeneralizer(object):
 
         from sklearn.datasets import load_digits
         from stacked_generalizer import StackedGeneralizer
-        from sklearn.ensemble import RandomForestClassifier, ExtraTreesClassifier
+        from sklearn.ensemble import (RandomForestClassifier,
+        							  ExtraTreesClassifier)
         from sklearn.linear_model import LogisticRegression
         import numpy as np
 
@@ -67,9 +70,12 @@ class StackedGeneralizer(object):
         n_train = round(X.shape[0]*.8)
 
         # define base models
-        base_models = [RandomForestClassifier(n_estimators=100, n_jobs=-1, criterion='gini'),
-                       RandomForestClassifier(n_estimators=100, n_jobs=-1, criterion='entropy'),
-                       ExtraTreesClassifier(n_estimators=100, n_jobs=-1, criterion='gini')]
+        base_models = [RandomForestClassifier(n_estimators=100, n_jobs=-1,
+        									  criterion='gini'),
+                       RandomForestClassifier(n_estimators=100, n_jobs=-1,
+                       					      criterion='entropy'),
+                       ExtraTreesClassifier(n_estimators=100, n_jobs=-1,
+                       					    criterion='gini')]
 
         # define blending model
         blending_model = LogisticRegression()
@@ -112,21 +118,23 @@ class StackedGeneralizer(object):
         if self.verbose:
             print('Fitting Base Models...')
 
-        kf = list(KFold(y.shape[0], self.n_folds))
-
-        self.base_models_cv = {}
+        kf = KFold(y.shape[0], self.n_folds, shuffle=True, random_state=4242) 
+        print('How KFold splits data:') 
+        for j , (train_idx,test_idx) in enumerate(kf): 
+            print(train_idx,test_idx,j) 
+        self.base_models_cv = {} 
 
         for i, model in enumerate(self.base_models):
 
-            model_name = "model %02d: %s" % (i+1, model.__repr__())
+            model_name = f"model {i+1:02d}: {model.__repr__()}"
             if self.verbose:
-                print('Fitting %s' % model_name)
+                print(f'Fitting {model_name}')
 
             # run stratified CV for each model
             self.base_models_cv[model_name] = []            
             for j, (train_idx, test_idx) in enumerate(kf):
                 if self.verbose:
-                    print('Fold %d' % (j + 1))
+                    print(f'Fold {j + 1}')
 
                 X_train = X[train_idx]
                 y_train = y[train_idx]
@@ -146,7 +154,8 @@ class StackedGeneralizer(object):
                 model_predictions = get_predictions(model, X)
         
                 if cv_predictions is None:
-                    cv_predictions = np.zeros((n_models, X.shape[0], model_predictions.shape[1]))
+                    cv_predictions = np.zeros((n_models, X.shape[0],
+                    						   model_predictions.shape[1]))
                     
                 cv_predictions[i,:,:] = model_predictions
 
@@ -162,22 +171,24 @@ class StackedGeneralizer(object):
         return self.transform_base_models(X)
 
     def fit_blending_model(self, X_blend, y):
-        if self.verbose:
-            model_name = "%s" % self.blending_model.__repr__()
-            print('Fitting Blending Model:\n%s' % model_name)
+        if self.verbose: 
+            model_name = f"{self.blending_model.__repr__()}"
+            print(f'Fitting Blending Model:\n{model_name}') 
 
-        kf = list(KFold(y.shape[0], self.n_folds))
+        kf = KFold(y.shape[0], self.n_folds, shuffle=True, random_state=4242) 
         # run  CV 
         self.blending_model_cv = []
 
         for j, (train_idx, test_idx) in enumerate(kf):
             if self.verbose:
-                print('Fold %d' % j)
+                print(f'Fold {j}')
 
-            X_train = X_blend[train_idx]
-            y_train = y[train_idx]
-
-            model = copy(self.blending_model)
+            X_train = np.take(X_blend,train_idx, axis=0) 
+            y_train = np.take(y,train_idx, axis=0) 
+            print(X_train.shape,y_train.shape) 
+            np.reshape(y_train,(-1,1)) 
+            print(X_train.shape,y_train.shape) 
+            model = copy(self.blending_model) 
 
             model.fit(X_train, y_train)
 
@@ -194,7 +205,8 @@ class StackedGeneralizer(object):
             model_predictions = get_predictions(model, X_blend)
 
             if cv_predictions is None:
-                cv_predictions = np.zeros((n_models, X_blend.shape[0], model_predictions.shape[1]))
+                cv_predictions = np.zeros((n_models, X_blend.shape[0],
+                						   model_predictions.shape[1]))
             
             cv_predictions[i,:,:] = model_predictions
             
