@@ -1,4 +1,7 @@
 # stacked_generalization
+
+Updated the below python implementation for Python 3.6.
+
 Python implementation of stacked generalization classifier, as described [here](http://machine-learning.martinsewell.com/ensembles/stacking/). 
 
 Plays nice with sklearn classifiers, or any model classes that have both `.fit` and `.predict` methods.
